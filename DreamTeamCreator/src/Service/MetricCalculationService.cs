@@ -2,14 +2,16 @@
 
 namespace DreamTeamCreatorProject.Service;
 
-public class RatingCalculationService : IRatingCalculationService
+public class MetricCalculationService : IMetricCalculationService
 {
+    private const int CountOfMembersInTeam = 2;
+
     public decimal CalculateHarmonicMean(List<TeamEntity> teamEntities)
     {
-        int countOfTeamMembers = teamEntities.Count * 2;
+        var countOfTeamMembers = teamEntities.Count * CountOfMembersInTeam;
         var result = (from teamEntity in teamEntities
             let juniorCoefficient = teamEntity.TeamMetrics.JuniorPriorityMetric
-            let teamLeadCoefficient = teamEntity.TeamMetrics.JuniorPriorityMetric
+            let teamLeadCoefficient = teamEntity.TeamMetrics.TeamLeadPriorityMetric
             select (1.0m / teamLeadCoefficient) + (1.0m / juniorCoefficient)).Sum();
         return countOfTeamMembers / result;
     }

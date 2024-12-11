@@ -2,7 +2,7 @@
 
 namespace DreamTeamCreatorProject.Service;
 
-public interface IRatingCalculationService
+public interface IMetricCalculationService
 {
     decimal CalculateHarmonicMean(List<TeamEntity> teamEntities);
 }

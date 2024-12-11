@@ -33,7 +33,7 @@ class DreamTeamCreator
                 services
                     .AddTransient<ITeamBuildingStrategy,
                         TeamBuildingStrategy>();
-                services.AddTransient<IRatingCalculationService, RatingCalculationService>();
+                services.AddTransient<IMetricCalculationService, MetricCalculationService>();
 
                 services.AddTransient<Hackathon>();
                 services.AddTransient<HRManager>();

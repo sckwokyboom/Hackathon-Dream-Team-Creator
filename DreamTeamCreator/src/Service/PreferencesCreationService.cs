@@ -9,7 +9,7 @@ public class PreferencesCreationService : IPreferencesCreationService
         var teamLeadsAndTheirPreferredJuniors =
             CreateRandomTeamMemberPreferences(potentialTeamMembers.TeamLeads, potentialTeamMembers.Juniors);
         var juniorsAndTheirPreferredTeamLeads =
-            CreateRandomTeamMemberPreferences(potentialTeamMembers.TeamLeads, potentialTeamMembers.Juniors);
+            CreateRandomTeamMemberPreferences(potentialTeamMembers.Juniors, potentialTeamMembers.TeamLeads);
 
         return new PotentialTeamMembersPreferences(
             teamLeadsAndTheirPreferredJuniors,
