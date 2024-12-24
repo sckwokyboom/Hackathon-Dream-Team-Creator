@@ -8,6 +8,33 @@ public class DreamTeamBuildingStrategyService : IDreamTeamBuildingStrategyServic
     {
         var juniors = preferences.Where(p => p.Member.EmployeeType == EmployeeType.Junior).ToList();
         var teamLeads = preferences.Where(p => p.Member.EmployeeType == EmployeeType.TeamLead).ToList();
+        if (juniors.Count != teamLeads.Count)
+        {
+            throw new InvalidOperationException(
+                "Количество предпочтений juniors не совпадает с количеством предпочтений team leads.");
+        }
+        var duplicateKeysTeamLeads = teamLeads
+            .GroupBy(tl => tl.Member.Id)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToList();
+        var duplicateKeysJuniors = juniors
+            .GroupBy(tl => tl.Member.Id)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToList();
+        if (duplicateKeysTeamLeads.Count != 0)
+        {
+            Console.WriteLine(
+                $"Были найдены дублирующие ключи в team leads: {string.Join(", ", duplicateKeysTeamLeads)}");
+            throw new InvalidOperationException($"Были найдены дублирующие ключи в team leads: {string.Join(", ", duplicateKeysTeamLeads)}");
+        }
+        if (duplicateKeysJuniors.Count != 0)
+        {
+            Console.WriteLine(
+                $"Были найдены дублирующие ключи в juniors: {string.Join(", ", duplicateKeysJuniors)}");
+            throw new InvalidOperationException($"Были найдены дублирующие ключи в juniors: {string.Join(", ", duplicateKeysJuniors)}");
+        }
 
         var compatibility = CalculateCompatibilityMatrix(juniors, teamLeads);
 
@@ -19,26 +46,9 @@ public class DreamTeamBuildingStrategyService : IDreamTeamBuildingStrategyServic
         List<Preferences> teamLeads)
     {
         var compatibility = new Dictionary<int, Dictionary<int, decimal>>();
-
+        
         foreach (var junior in juniors)
         {
-            var duplicateKeys = teamLeads
-                .GroupBy(tl => tl.Member.Id)
-                .Where(group => group.Count() > 1)
-                .Select(group => group.Key)
-                .ToList();
-
-            if (duplicateKeys.Count != 0)
-            {
-                Console.WriteLine(
-                    $"Были найдены дублирующие ключи: {string.Join(", ", duplicateKeys)}");
-                teamLeads = teamLeads
-                    .GroupBy(tl => tl.Member.Id)
-                    .Select(group => group.First())
-                    .ToList();
-            }
-
-
             compatibility[junior.Member.Id] = teamLeads.ToDictionary(
                 teamLead => teamLead.Member.Id,
                 teamLead => CalculateEnjoyableMetric(junior, teamLead)

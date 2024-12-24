@@ -19,7 +19,7 @@ public class HackathonStartEventConsumer
     }
 
 
-    public Task Consume(ConsumeContext<HackathonStartEvent> context)
+    public async Task Consume(ConsumeContext<HackathonStartEvent> context)
     {
         Console.WriteLine($"Хакатон {context.Message.HackathonId} начался!");
         Console.WriteLine($"Участник: {member}");
@@ -30,10 +30,9 @@ public class HackathonStartEventConsumer
         var preferencesResponse = new Preferences(context.Message.HackathonId,
             state.Member, preferences);
 
-        publishEndpoint.Publish(preferencesResponse);
+        await publishEndpoint.Publish(preferencesResponse);
 
         Console.WriteLine(
             $"ID хакатона: {context.Message.HackathonId}. Сгенерированные предпочтения: {string.Join(", ", preferences)}.");
-        return Task.CompletedTask;
     }
 }

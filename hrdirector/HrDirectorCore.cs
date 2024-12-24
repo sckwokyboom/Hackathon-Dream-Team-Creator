@@ -7,7 +7,7 @@ using domain;
 public class HrDirectorCore(
     MetricCalculationService metricsCalculationService) : BackgroundService
 {
-    private const int TotalHackathons = 10;
+    private const int TotalHackathons = 1;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -33,7 +33,7 @@ public class HrDirectorCore(
                 return Results.BadRequest(new { Message = "Parameter 'id' is required and must be an integer." });
             }
 
-            var hackathon = metricsCalculationService.GetHackathonById(hackathonId);
+            var hackathon = metricsCalculationService.GetHackathonByIdAsync(hackathonId);
             return hackathon != null
                 ? Results.Json(hackathon)
                 : Results.NotFound(new { Message = $"Хакатона с ID={hackathonId} не существует." });

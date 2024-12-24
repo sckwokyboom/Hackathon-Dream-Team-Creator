@@ -23,7 +23,7 @@ public class MetricCalculationService(
 
             Console.WriteLine($"Сохранение в базу данных предпочтений участников хакатона: {hackathonId}.");
             hackathon.Preferences!.Add(preferences);
-            // context.Entities.Add(hackathon);
+            await context.Entities.AddAsync(hackathon);
             context.Entities.Update(hackathon);
 
             await context.SaveChangesAsync();
@@ -95,7 +95,7 @@ public class MetricCalculationService(
             // await Task.Delay(3000);
             var hackathonId = new Random().Next();
             var hackathon = new Hackathon { HackathonId = hackathonId };
-            context.Entities.Add(hackathon);
+            await context.Entities.AddAsync(hackathon);
 
             Console.WriteLine($"Хакатон №{i} начался.");
             var startEvent = new HackathonStartEvent(hackathonId);
@@ -112,10 +112,10 @@ public class MetricCalculationService(
         return context.Entities.AsNoTracking().Select(e => e.HackathonId).ToList();
     }
 
-    public Hackathon? GetHackathonById(int hackathonId)
+    public async Task<Hackathon?> GetHackathonByIdAsync(int hackathonId)
     {
-        using var context = contextFactory.CreateDbContext();
-        return context.Entities.FirstOrDefault(e => e.HackathonId == hackathonId);
+        await using var context = await contextFactory.CreateDbContextAsync();
+        return await context.Entities.FirstOrDefaultAsync(e => e.HackathonId == hackathonId);
     }
 
     public async Task<decimal?> GetAverageHarmonyAsync()

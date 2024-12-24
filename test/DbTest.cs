@@ -17,7 +17,7 @@ public class TestDatabaseServerFixture : IDisposable
     public TestDatabaseServerFixture()
     {
         _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.OpenAsync();
+        _connection.Open();
 
         var serviceProvider = new ServiceCollection()
             .AddDbContextFactory<HackathonDbContext>(options =>
@@ -33,6 +33,7 @@ public class TestDatabaseServerFixture : IDisposable
     public void Dispose()
     {
         _connection.Close();
+        _connection.Dispose();
     }
 }
 
@@ -41,65 +42,72 @@ public class MetricsCalculationServiceTests(TestDatabaseServerFixture fixture)
 {
     private readonly IDbContextFactory<HackathonDbContext> _dbContextFactory = fixture.DbContextFactory;
 
-    [Fact(DisplayName = "Расчёт и запись среднего гармонического")]
-    public async void TestCalculateAndSetMetricsToDb()
+    [Fact(DisplayName = "Расчёт и запись среднего гармонического в базу данных.")]
+    public async Task TestCalculateAndSetMetricsToDb()
     {
-        using var context = _dbContextFactory.CreateDbContext();
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
         const int hackathonId = 1337;
         var team = new Team(new Member(1, EmployeeType.Junior), new Member(2, EmployeeType.TeamLead));
         var preferences1 = new Preferences(hackathonId, team.Junior, [team.TeamLead.Id]);
         var preferences2 = new Preferences(hackathonId, team.TeamLead, [team.Junior.Id]);
-        var hackathon = new Hackathon()
+        var hackathon = new Hackathon
         {
             HackathonId = hackathonId,
             Teams = [team],
             Preferences = [preferences1, preferences2]
         };
-        context.Entities.Add(hackathon);
+
+        await context.Entities.AddAsync(hackathon);
         await context.SaveChangesAsync();
+
         var service = new MetricCalculationService(_dbContextFactory, Mock.Of<IPublishEndpoint>());
-
         await service.SetHarmonyAsync(hackathonId);
+        await context.Entry(hackathon).ReloadAsync();
 
-        var harmony = service.GetHackathonById(hackathonId)!.Harmony;
-        Assert.Equal(1, harmony);
+        var storedHackathon = await context.Entities.FirstOrDefaultAsync(e => e.HackathonId == hackathonId);
+
+        Assert.NotNull(storedHackathon);
+        Assert.Equal(1, storedHackathon.Harmony);
     }
 
     [Fact(DisplayName = "Запись информации о мероприятии в БД.")]
     public async Task TestAddHackathonAndPreferencesToDb()
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync();
-        await context.Database.OpenConnectionAsync();
-        await context.Database.EnsureCreatedAsync();
+
         var service = new MetricCalculationService(_dbContextFactory, Mock.Of<IPublishEndpoint>());
         await service.StartHackathonsAsync(1);
-        var hackathonId = context.Entities.First().HackathonId;
+        
+        var hackathon = await context.Entities.FirstAsync();
+        var hackathonId = hackathon.HackathonId;
         var team = new Team(new Member(1, EmployeeType.Junior), new Member(1, EmployeeType.TeamLead));
-        var preferences1 = new Preferences(hackathonId, new Member(1, EmployeeType.Junior), new List<int> { 1 });
-        var preferences2 = new Preferences(hackathonId, new Member(1, EmployeeType.TeamLead), new List<int> { 1 });
+        var preferences1 = new Preferences(hackathonId, new Member(1, EmployeeType.Junior), [1]);
+        var preferences2 = new Preferences(hackathonId, new Member(1, EmployeeType.TeamLead), [1]);
+        
         await service.AddPreferencesFromHackathonToDbAsync(hackathonId, preferences1);
         await service.AddPreferencesFromHackathonToDbAsync(hackathonId, preferences2);
         await service.AddTeamsFromHackathonToDbAsync(hackathonId, [team]);
+        await context.Entry(hackathon).ReloadAsync();
 
-        var hackathon = context.Entities.FirstOrDefault(e => e.HackathonId == hackathonId);
+        var updatedHackathon = await context.Entities.FirstOrDefaultAsync(e => e.HackathonId == hackathonId);
 
-        Assert.NotNull(hackathon);
-        Assert.Equal(hackathonId, hackathon.HackathonId);
-        Assert.Contains([team], t => t.Junior.Id == 1);
-        Assert.Contains(hackathon.Preferences!, p => p.Member.Id == 1);
+        Assert.NotNull(updatedHackathon);
+        Assert.Equal(hackathonId, updatedHackathon.HackathonId);
+        Assert.Contains(updatedHackathon.Teams!, t => t.Junior.Id == 1);
+        Assert.Contains(updatedHackathon.Preferences!, p => p.Member.Id == 1);
     }
 
     [Fact(DisplayName = "Чтение информации о мероприятии из БД")]
-    public void TestReadHackathonFromDbById()
+    public async Task TestReadHackathonFromDbById()
     {
-        using var context = _dbContextFactory.CreateDbContext();
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
         const int hackathonId = 13371;
         var hackathon = new Hackathon { HackathonId = hackathonId };
-        context.Entities.Add(hackathon);
-        context.SaveChanges();
+        await context.Entities.AddAsync(hackathon);
+        await context.SaveChangesAsync();
+        
         var service = new MetricCalculationService(_dbContextFactory, Mock.Of<IPublishEndpoint>());
-
-        var retrievedHackathon = service.GetHackathonById(hackathonId);
+        var retrievedHackathon = await service.GetHackathonByIdAsync(hackathonId);
 
         Assert.NotNull(retrievedHackathon);
         Assert.Equal(hackathonId, retrievedHackathon!.HackathonId);
