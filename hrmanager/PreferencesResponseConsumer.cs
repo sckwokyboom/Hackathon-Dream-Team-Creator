@@ -7,8 +7,8 @@ using System.Text.Json;
 using MassTransit;
 
 public class PreferencesResponseConsumer(
-    DirectorSettings directorSettings,
-    TeamCreationService teamCreationService) : IConsumer<Preferences>
+    HrDirectorParameters hrDirectorParameters,
+    DreamTeamFormationService dreamTeamFormationService) : IConsumer<Preferences>
 {
     private readonly HttpClient _client = new();
 
@@ -17,12 +17,12 @@ public class PreferencesResponseConsumer(
         Console.WriteLine($"Хакатон ID: {context.Message.HackathonId}.\n" +
                           $"Участник, для которого получены предпочтения: {context.Message.Member}.");
 
-        teamCreationService.AddPreferences(context.Message);
+        dreamTeamFormationService.AddPreferences(context.Message);
 
-        if (teamCreationService.IsAllPreferencesForHackathonArePresented(context.Message.HackathonId))
+        if (dreamTeamFormationService.IsAllPreferencesForHackathonArePresented(context.Message.HackathonId))
         {
             Console.WriteLine("Все предпочтения получены, формирование команд...");
-            var teams = teamCreationService.BuildTeams(context.Message.HackathonId);
+            var teams = dreamTeamFormationService.BuildTeams(context.Message.HackathonId);
             Console.WriteLine("Команды сформированы. Количество команд: " + teams.Count);
             await NotifyDirectorAsync(new CreatedTeams(context.Message.HackathonId, teams));
         }
@@ -33,28 +33,32 @@ public class PreferencesResponseConsumer(
     {
         Console.WriteLine("Уведомление HR-директора о созданных командах...");
 
-        var payload = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8,
-            "application/json");
+        var payload = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
 
-        try
+        while (true)
         {
-            var response =
-                await _client.PostAsync($"http://{directorSettings.Uri}/teams",
-                    payload);
-            if (response.StatusCode == HttpStatusCode.OK)
+            try
+
             {
-                Console.WriteLine("Уведомление HR-директора успешно отправлено.");
+                var response =
+                    await _client.PostAsync($"http://{hrDirectorParameters.Uri}/teams",
+                        payload);
+                if (response.StatusCode == HttpStatusCode.OK)
+                {
+                    Console.WriteLine("Уведомление HR-директора успешно отправлено.");
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine($"Уведомление не отправлено, код ошибки : {response.StatusCode}.");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                Console.WriteLine($"Уведомление не отправлено, код ошибки : {response.StatusCode}.");
+                Console.WriteLine("Ошибка при отправке уведомления HR-директору о созданных командах.");
+                Console.WriteLine(ex.Message);
+                Console.WriteLine(ex.StackTrace);
             }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("Ошибка при отправке уведомления HR-директору о созданных командах.");
-            Console.WriteLine(ex.Message);
-            Console.WriteLine(ex.StackTrace);
         }
     }
 }

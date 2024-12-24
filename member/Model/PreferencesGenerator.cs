@@ -8,7 +8,7 @@ public class PreferencesGenerator(Member member, AllMembers allMembers)
     {
         var random = new Random();
         return member.EmployeeType == EmployeeType.Junior
-            ? allMembers.Teamlead.Select(it => it.Id).OrderBy(_ => random.Next()).ToList()
+            ? allMembers.TeamLead.Select(it => it.Id).OrderBy(_ => random.Next()).ToList()
             : allMembers.Junior.Select(it => it.Id).OrderBy(_ => random.Next()).ToList();
     }
 }

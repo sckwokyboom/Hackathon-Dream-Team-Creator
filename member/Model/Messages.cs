@@ -2,7 +2,7 @@
 
 namespace member.Model;
 
-public record AllMembers(List<Member> Junior, List<Member> Teamlead);
+public record AllMembers(List<Member> Junior, List<Member> TeamLead);
 
 public class UserRecord
 {

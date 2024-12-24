@@ -3,7 +3,7 @@
 using domain;
 using MassTransit;
 
-public class PreferencesResponseConsumer(
+public class MemberPreferencesResponseConsumer(
     MetricCalculationService metricCalculationService) : IConsumer<Preferences>
 {
     public async Task Consume(ConsumeContext<Preferences> context)

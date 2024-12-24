@@ -4,7 +4,7 @@ namespace hrdirector;
 
 using domain;
 
-public class Director(
+public class HrDirectorCore(
     MetricCalculationService metricsCalculationService) : BackgroundService
 {
     private const int TotalHackathons = 10;

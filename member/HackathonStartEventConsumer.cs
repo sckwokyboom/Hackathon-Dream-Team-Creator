@@ -4,14 +4,14 @@ using domain;
 using Model;
 using MassTransit;
 
-public class HackathonStartConsumer
+public class HackathonStartEventConsumer
     : IConsumer<HackathonStartEvent>
 {
     private readonly Member member;
     private readonly AllMembers _allMembers;
     private readonly IPublishEndpoint publishEndpoint;
 
-    public HackathonStartConsumer(Member member, AllMembers allMembers, IPublishEndpoint publishEndpoint)
+    public HackathonStartEventConsumer(Member member, AllMembers allMembers, IPublishEndpoint publishEndpoint)
     {
         this.member = member;
         _allMembers = allMembers;

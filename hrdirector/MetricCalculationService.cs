@@ -2,13 +2,12 @@
 
 using domain;
 using System.Data.Entity.Core;
-using System.Runtime.CompilerServices;
 using Entities;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
 public class MetricCalculationService(
-    IDbContextFactory<ApplicationDbContext> contextFactory,
+    IDbContextFactory<HackathonDbContext> contextFactory,
     IPublishEndpoint publishEndpoint)
 {
     public async Task AddPreferencesFromHackathonToDbAsync(int hackathonId, Preferences preferences)
@@ -24,6 +23,7 @@ public class MetricCalculationService(
 
             Console.WriteLine($"Сохранение в базу данных предпочтений участников хакатона: {hackathonId}.");
             hackathon.Preferences!.Add(preferences);
+            // context.Entities.Add(hackathon);
             context.Entities.Update(hackathon);
 
             await context.SaveChangesAsync();
@@ -92,6 +92,7 @@ public class MetricCalculationService(
 
         for (var i = 0; i < totalHackathons; i++)
         {
+            // await Task.Delay(3000);
             var hackathonId = new Random().Next();
             var hackathon = new Hackathon { HackathonId = hackathonId };
             context.Entities.Add(hackathon);
@@ -151,7 +152,7 @@ public class MetricCalculationService(
                 throw new EntityException("Hackathon not found");
             }
 
-            hackathon.Harmony = CalculateHarmony(hackathon.Teams, hackathon.Preferences);
+            hackathon.Harmony = CalculateHarmony(hackathon.Teams!, hackathon.Preferences!);
             context.Entities.Update(hackathon);
             await context.SaveChangesAsync();
         }

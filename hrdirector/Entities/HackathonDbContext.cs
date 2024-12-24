@@ -1,20 +1,19 @@
-﻿namespace hrdirector;
+﻿namespace hrdirector.Entities;
 
 using domain;
 using System.Text.Json;
-using Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
-public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
+public class HackathonDbContext(DbContextOptions<HackathonDbContext> options) : DbContext(options)
 {
     public DbSet<Hackathon> Entities { get; init; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Hackathon>().HasKey(e => e.HackathonId);
-
+        modelBuilder.Entity<Hackathon>()
+            .HasKey(e => e.HackathonId);
         var options = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
