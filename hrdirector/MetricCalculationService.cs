@@ -127,21 +127,30 @@ public class MetricCalculationService(
     {
         var max = teams.Count;
 
-        var many = teams.SelectMany<Team, int>(team =>
+        var allHackathonMembersRates = teams.SelectMany<Team, int>(team =>
             {
                 var junPrefs = preferences.Find(it =>
-                    it.Member.EmployeeType == EmployeeType.Junior && it.Member.Id == team.Junior.Id)!;
-                var tlPrefs = preferences.Find(it =>
+                    it.Member.EmployeeType == EmployeeType.Junior && it.Member.Id == team.Junior.Id);
+                if (junPrefs == null)
+                {
+                    Console.Error.WriteLine($"Предпочтения для junior {team.Junior.Id} не найдены.");
+                    throw new InvalidOperationException($"Предпочтения для junior {team.Junior.Id} не найдены.");
+                }
+                var teamLeadsPrefs = preferences.Find(it =>
                     it.Member.EmployeeType == EmployeeType.TeamLead && it.Member.Id == team.TeamLead.Id)!;
-
+                if (teamLeadsPrefs == null)
+                {
+                    Console.Error.WriteLine($"Предпочтения для team leads {team.TeamLead.Id} не найдены.");
+                    throw new InvalidOperationException($"Предпочтения для junior {team.TeamLead.Id} не найдены.");
+                }
                 var junToTeamLeadRate = max - junPrefs.PreferencesList.IndexOf(team.TeamLead.Id);
-                var teamLeadToJunRate = max - tlPrefs.PreferencesList.IndexOf(team.Junior.Id);
-
+                var teamLeadToJunRate = max - teamLeadsPrefs.PreferencesList.IndexOf(team.Junior.Id);
+                Console.WriteLine($"Индексы удовлетворённости для тимлида и джуна: {junToTeamLeadRate} {teamLeadToJunRate}");
                 return [junToTeamLeadRate, teamLeadToJunRate];
             }
         ).ToList();
 
-        return HarmonyImpl(many);
+        return HarmonyImpl(allHackathonMembersRates);
     }
 
     public static decimal HarmonyImpl(List<int> seq)
@@ -156,7 +165,6 @@ public class MetricCalculationService(
 
         for (var i = 0; i < totalHackathons; i++)
         {
-            // await Task.Delay(3000);
             var hackathonId = new Random().Next();
             var hackathon = new Hackathon { HackathonId = hackathonId };
             await context.Entities.AddAsync(hackathon);

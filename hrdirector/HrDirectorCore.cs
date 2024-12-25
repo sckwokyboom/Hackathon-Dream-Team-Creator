@@ -80,7 +80,7 @@ public class HrDirectorCore(
             }
 
             await metricsCalculationService.AddTeamsFromHackathonToDbAsync(request.HackathonId, request.Teams);
-            Console.WriteLine($"Среднее по гармонии из базы данных: {await metricsCalculationService.GetAverageHarmonyAsync()}");
+            Console.WriteLine($"Среднее по гармонии из базы данных для хакатона {request.HackathonId}: {await metricsCalculationService.GetAverageHarmonyAsync()}");
             return Results.Ok();
         }
         catch (Exception ex)

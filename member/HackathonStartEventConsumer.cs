@@ -1,6 +1,4 @@
-﻿using System.Collections.Concurrent;
-
-namespace member;
+﻿namespace member;
 
 using domain;
 using Model;
