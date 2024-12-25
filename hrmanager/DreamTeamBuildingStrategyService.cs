@@ -25,13 +25,13 @@ public class DreamTeamBuildingStrategyService : IDreamTeamBuildingStrategyServic
             .ToList();
         if (duplicateKeysTeamLeads.Count != 0)
         {
-            Console.WriteLine(
+            Console.Error.WriteLine(
                 $"Были найдены дублирующие ключи в team leads: {string.Join(", ", duplicateKeysTeamLeads)}");
             throw new InvalidOperationException($"Были найдены дублирующие ключи в team leads: {string.Join(", ", duplicateKeysTeamLeads)}");
         }
         if (duplicateKeysJuniors.Count != 0)
         {
-            Console.WriteLine(
+            Console.Error.WriteLine(
                 $"Были найдены дублирующие ключи в juniors: {string.Join(", ", duplicateKeysJuniors)}");
             throw new InvalidOperationException($"Были найдены дублирующие ключи в juniors: {string.Join(", ", duplicateKeysJuniors)}");
         }

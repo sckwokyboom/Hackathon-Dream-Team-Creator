@@ -1,4 +1,7 @@
-﻿namespace hrdirector;
+﻿using System.Collections.Concurrent;
+using MassTransit.Internals;
+
+namespace hrdirector;
 
 using domain;
 using System.Data.Entity.Core;
@@ -10,8 +13,16 @@ public class MetricCalculationService(
     IDbContextFactory<HackathonDbContext> contextFactory,
     IPublishEndpoint publishEndpoint)
 {
+    private readonly ConcurrentDictionary<int, int> _pendingPreferences = new();
+    private readonly Dictionary<int, TaskCompletionSource<bool>> _preferencesCompletion = new();
+    private const int TotalPreferencesCount = 10;
+    private readonly ConcurrentDictionary<int, SemaphoreSlim> _hackathonLocks = new();
+
     public async Task AddPreferencesFromHackathonToDbAsync(int hackathonId, Preferences preferences)
     {
+        _pendingPreferences.AddOrUpdate(hackathonId, 1, (_, count) => count + 1);
+        var semaphore = _hackathonLocks.GetOrAdd(hackathonId, _ => new SemaphoreSlim(1, 1));
+        await semaphore.WaitAsync();
         try
         {
             await using var context = await contextFactory.CreateDbContextAsync();
@@ -22,16 +33,45 @@ public class MetricCalculationService(
             }
 
             Console.WriteLine($"Сохранение в базу данных предпочтений участников хакатона: {hackathonId}.");
-            hackathon.Preferences!.Add(preferences);
+            if (hackathon.Preferences != null && !hackathon.Preferences.Contains(preferences))
+            {
+                hackathon.Preferences!.Add(preferences);
+            }
+            else
+            {
+                await Console.Error.WriteLineAsync(
+                    $"Произошла ошибка при загрузке хакатона. Предпочтения уже добавлены или хакатон равен null.");
+            }
+
             await context.Entities.AddAsync(hackathon);
             context.Entities.Update(hackathon);
-
             await context.SaveChangesAsync();
+            Console.WriteLine($"Добавлено {hackathon.Preferences!.Count} предпочтений.");
+            if (!_preferencesCompletion.TryGetValue(hackathonId, out TaskCompletionSource<bool>? value))
+            {
+                value = new TaskCompletionSource<bool>();
+                _preferencesCompletion[hackathonId] = value;
+            }
+
+            if (hackathon.Preferences is { Count: >= TotalPreferencesCount })
+            {
+                Console.WriteLine($"Все предпочтения для хакатона {hackathonId} добавлены.");
+                value.TrySetResult(true);
+                _preferencesCompletion.Remove(hackathonId, out _);
+            }
         }
         catch (Exception ex)
         {
             await Console.Error.WriteLineAsync(
                 $"Ошибка при обновление предпочтений участников хакатона (id = {hackathonId}): {ex.Message}");
+        }
+        finally
+        {
+            semaphore.Release();
+            if (_pendingPreferences[hackathonId] == 0)
+            {
+                _hackathonLocks.TryRemove(hackathonId, out _);
+            }
         }
     }
 
@@ -40,22 +80,46 @@ public class MetricCalculationService(
         await using var context = await contextFactory.CreateDbContextAsync();
         try
         {
+            var completionTask = _preferencesCompletion.GetOrAdd(
+                hackathonId,
+                _ => new TaskCompletionSource<bool>()
+            ).Task;
+
+            await completionTask;
+
             var hackathon = await context.Entities.FirstOrDefaultAsync(e => e.HackathonId == hackathonId);
             if (hackathon == null)
             {
+                await Console.Error.WriteLineAsync("Хакатон является null.");
                 throw new InvalidOperationException("Хакатон является null.");
             }
 
-            hackathon.Teams!.AddRange(teams);
-            hackathon.Harmony = CalculateHarmony(hackathon.Teams, hackathon.Preferences!);
+            if (hackathon.Preferences == null)
+            {
+                await Console.Error.WriteLineAsync("Preferences являются null.");
+                throw new InvalidOperationException("Preferences являются null.");
+            }
+
+            if (hackathon.Teams == null)
+            {
+                Console.WriteLine("Команды на хакатоне равны null.");
+                hackathon.Teams = [];
+            }
+
+            Console.WriteLine("Команды, которые уже были в хакатоне: " + string.Join(" ", hackathon.Teams));
+            Console.WriteLine("Новые команды: " + string.Join(" ", teams));
+            Console.WriteLine("Предпочтения: " + string.Join(" ", hackathon.Preferences));
+            hackathon.Teams.AddRange(teams);
+            hackathon.Harmony = CalculateHarmony(hackathon.Teams, hackathon.Preferences);
+            Console.WriteLine($"Среднее по гармонии: {hackathon.Harmony}");
             context.Entities.Update(hackathon);
-            Console.WriteLine("Harmony = " + hackathon.Harmony);
             await context.SaveChangesAsync();
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine("Ошибка при обновлении команды для хакатона (id= " + hackathonId + "): " +
-                                    ex.Message);
+            await Console.Error.WriteLineAsync("Ошибка при обновлении команды для хакатона (id= " + hackathonId +
+                                               "): " +
+                                               ex.Message);
         }
     }
 

@@ -25,7 +25,7 @@ public class HrDirectorCore(
 
         app.MapPost("/teams", TeamsRequestHandler);
 
-        app.MapGet("/hackathon", (HttpContext context) =>
+        app.MapGet("/hackathon", async (HttpContext context) =>
         {
             if (!context.Request.Query.TryGetValue("id", out var idValue) ||
                 !int.TryParse(idValue, out var hackathonId))
@@ -33,7 +33,7 @@ public class HrDirectorCore(
                 return Results.BadRequest(new { Message = "Parameter 'id' is required and must be an integer." });
             }
 
-            var hackathon = metricsCalculationService.GetHackathonByIdAsync(hackathonId);
+            var hackathon = await metricsCalculationService.GetHackathonByIdAsync(hackathonId);
             return hackathon != null
                 ? Results.Json(hackathon)
                 : Results.NotFound(new { Message = $"Хакатона с ID={hackathonId} не существует." });
@@ -80,7 +80,7 @@ public class HrDirectorCore(
             }
 
             await metricsCalculationService.AddTeamsFromHackathonToDbAsync(request.HackathonId, request.Teams);
-            Console.WriteLine($"Среднее по гармонии: {await metricsCalculationService.GetAverageHarmonyAsync()}");
+            Console.WriteLine($"Среднее по гармонии из базы данных: {await metricsCalculationService.GetAverageHarmonyAsync()}");
             return Results.Ok();
         }
         catch (Exception ex)

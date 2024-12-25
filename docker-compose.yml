@@ -55,13 +55,13 @@ services:
       RABBITMQ_USER: user
       RABBITMQ_PASSWORD: password
       DATABASE_URI: "Server=db;Port=5432;Database=hackathon;User Id=postgres;Password=postgres;"
-#    healthcheck:
-#      test: [ "CMD-SHELL", "curl -f http://localhost:80/health || exit 1" ]
-#      interval: 30s
-#      timeout: 10s
-#      retries: 3
-
-        
+        #    healthcheck:
+        #      test: [ "CMD-SHELL", "curl -f http://localhost:80/health || exit 1" ]
+        #      interval: 30s
+        #      timeout: 10s
+        #      retries: 3
+  
+  
   HRManagerService:
     image: hrmanager
     networks:
@@ -80,8 +80,8 @@ services:
       RABBITMQ_HOST_NAME: rabbitmq
       RABBITMQ_USER: user
       RABBITMQ_PASSWORD: password
-      DIRECTOR_URI: hrdirector:8080
-    entrypoint: ["sh", "-c", "sleep 30 && dotnet hrmanager.dll"]
+      DIRECTOR_URI: HRDirectorService:8080
+    entrypoint: [ "sh", "-c", "sleep 30 && dotnet hrmanager.dll" ]
 
   Junior1:
     image: member
@@ -92,6 +92,8 @@ services:
       dockerfile: member/Dockerfile
     depends_on:
       rabbitmq:
+        condition: service_healthy
+      db:
         condition: service_healthy
     environment:
       ID: 1
@@ -110,6 +112,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      db:
+        condition: service_healthy
     environment:
       ID: 2
       TYPE: junior
@@ -126,6 +130,8 @@ services:
       dockerfile: member/Dockerfile
     depends_on:
       rabbitmq:
+        condition: service_healthy
+      db:
         condition: service_healthy
     environment:
       ID: 3
@@ -144,6 +150,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      db:
+        condition: service_healthy
     environment:
       ID: 4
       TYPE: junior
@@ -161,6 +169,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      db:
+        condition: service_healthy
     environment:
       ID: 5
       TYPE: junior
@@ -174,6 +184,8 @@ services:
       - hackathon_network
     depends_on:
       rabbitmq:
+        condition: service_healthy
+      db:
         condition: service_healthy
     build:
       context: .
@@ -192,6 +204,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      db:
+        condition: service_healthy
     build:
       context: .
       dockerfile: member/Dockerfile
@@ -208,6 +222,8 @@ services:
       - hackathon_network
     depends_on:
       rabbitmq:
+        condition: service_healthy
+      db:
         condition: service_healthy
     build:
       context: .
@@ -226,6 +242,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      db:
+        condition: service_healthy
     build:
       context: .
       dockerfile: member/Dockerfile
@@ -242,6 +260,8 @@ services:
       - hackathon_network
     depends_on:
       rabbitmq:
+        condition: service_healthy
+      db:
         condition: service_healthy
     build:
       context: .
