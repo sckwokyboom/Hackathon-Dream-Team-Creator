@@ -15,10 +15,9 @@ public class MetricCalculationService(
 {
     private readonly ConcurrentDictionary<int, int> _pendingPreferences = new();
     private readonly Dictionary<int, TaskCompletionSource<bool>> _preferencesCompletion = new();
-    private const int TotalPreferencesCount = 10;
     private readonly ConcurrentDictionary<int, SemaphoreSlim> _hackathonLocks = new();
 
-    public async Task AddPreferencesFromHackathonToDbAsync(int hackathonId, Preferences preferences)
+    public async Task AddPreferencesFromHackathonToDbAsync(int hackathonId, Preferences preferences, int totalPreferencesCount)
     {
         _pendingPreferences.AddOrUpdate(hackathonId, 1, (_, count) => count + 1);
         var semaphore = _hackathonLocks.GetOrAdd(hackathonId, _ => new SemaphoreSlim(1, 1));
@@ -53,7 +52,7 @@ public class MetricCalculationService(
                 _preferencesCompletion[hackathonId] = value;
             }
 
-            if (hackathon.Preferences is { Count: >= TotalPreferencesCount })
+            if (hackathon.Preferences.Count >= totalPreferencesCount)
             {
                 Console.WriteLine($"Все предпочтения для хакатона {hackathonId} добавлены.");
                 value.TrySetResult(true);
@@ -125,7 +124,7 @@ public class MetricCalculationService(
 
     public static decimal CalculateHarmony(List<Team> teams, List<Preferences> preferences)
     {
-        var max = teams.Count;
+        var max = teams.Count * 2;
 
         var allHackathonMembersRates = teams.SelectMany<Team, int>(team =>
             {
@@ -193,7 +192,7 @@ public class MetricCalculationService(
     public async Task<decimal?> GetAverageHarmonyAsync()
     {
         await using var context = await contextFactory.CreateDbContextAsync();
-        var harmonies = await context.Entities.Select(e => e.Harmony).ToListAsync();
+        var harmonies = await context.Entities.Where(e => e.Harmony > 0).Select(e => e.Harmony).ToListAsync();
         return harmonies.Count != 0 ? harmonies.Average() : null;
     }
 

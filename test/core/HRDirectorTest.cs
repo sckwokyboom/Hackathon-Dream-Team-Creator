@@ -34,7 +34,7 @@ public class HrDirectorCoreTest
 
         var harmony = MetricCalculationService.CalculateHarmony(teams, preferences);
 
-        Assert.Equal(5.0m, harmony);
+        Assert.Equal(10.0m, harmony);
     }
 
     [Fact(DisplayName =
@@ -54,7 +54,7 @@ public class HrDirectorCoreTest
 
         var harmony = MetricCalculationService.CalculateHarmony(teams, preferences);
 
-        Assert.Equal(1.0m, harmony);
+        Assert.Equal(2.0m, harmony);
     }
 
     [Theory(DisplayName =
@@ -95,7 +95,6 @@ public class HrDirectorCoreTest
         };
 
         var harmony = MetricCalculationService.CalculateHarmony(teams, preferences);
-
-        Assert.True(Math.Abs(harmony - 1.6949152542372881m) < 0.01m);
+        Assert.True(Math.Abs(harmony - 7.2748267898383371824480369505m) < 0.01m);
     }
 }

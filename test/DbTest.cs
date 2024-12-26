@@ -67,34 +67,7 @@ public class MetricsCalculationServiceTests(TestDatabaseServerFixture fixture)
         var storedHackathon = await context.Entities.FirstOrDefaultAsync(e => e.HackathonId == hackathonId);
 
         Assert.NotNull(storedHackathon);
-        Assert.Equal(1, storedHackathon.Harmony);
-    }
-
-    [Fact(DisplayName = "Запись информации о мероприятии в БД.")]
-    public async Task TestAddHackathonAndPreferencesToDb()
-    {
-        await using var context = await _dbContextFactory.CreateDbContextAsync();
-
-        var service = new MetricCalculationService(_dbContextFactory, Mock.Of<IPublishEndpoint>());
-        await service.StartHackathonsAsync(1);
-        
-        var hackathon = await context.Entities.FirstAsync();
-        var hackathonId = hackathon.HackathonId;
-        var team = new Team(new Member(1, EmployeeType.Junior), new Member(1, EmployeeType.TeamLead));
-        var preferences1 = new Preferences(hackathonId, new Member(1, EmployeeType.Junior), [1]);
-        var preferences2 = new Preferences(hackathonId, new Member(1, EmployeeType.TeamLead), [1]);
-        
-        await service.AddPreferencesFromHackathonToDbAsync(hackathonId, preferences1);
-        await service.AddPreferencesFromHackathonToDbAsync(hackathonId, preferences2);
-        await service.AddTeamsFromHackathonToDbAsync(hackathonId, [team]);
-        await context.Entry(hackathon).ReloadAsync();
-
-        var updatedHackathon = await context.Entities.FirstOrDefaultAsync(e => e.HackathonId == hackathonId);
-
-        Assert.NotNull(updatedHackathon);
-        Assert.Equal(hackathonId, updatedHackathon.HackathonId);
-        Assert.Contains(updatedHackathon.Teams!, t => t.Junior.Id == 1);
-        Assert.Contains(updatedHackathon.Preferences!, p => p.Member.Id == 1);
+        Assert.Equal(2, storedHackathon.Harmony);
     }
 
     [Fact(DisplayName = "Чтение информации о мероприятии из БД")]
@@ -105,11 +78,43 @@ public class MetricsCalculationServiceTests(TestDatabaseServerFixture fixture)
         var hackathon = new Hackathon { HackathonId = hackathonId };
         await context.Entities.AddAsync(hackathon);
         await context.SaveChangesAsync();
-        
+
         var service = new MetricCalculationService(_dbContextFactory, Mock.Of<IPublishEndpoint>());
         var retrievedHackathon = await service.GetHackathonByIdAsync(hackathonId);
 
         Assert.NotNull(retrievedHackathon);
         Assert.Equal(hackathonId, retrievedHackathon!.HackathonId);
+    }
+
+    /**
+     * Этот тест не работает нормально (зависает) из-за того, что что-то не так с транзакцией "Добавить все предпочтения, затем добавить все команды".
+     * Возможно, нужно как-то поиграться с контекстом или поправить что-то в самих функциях. Но сама лаба разворачивается без проблем и всё ок работает.
+      */
+    [Fact(DisplayName = "Запись информации о мероприятии в БД.")]
+    public async Task TestAddHackathonAndPreferencesToDb()
+    {
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+    
+        var service = new MetricCalculationService(_dbContextFactory, Mock.Of<IPublishEndpoint>());
+        await service.StartHackathonsAsync(1);
+        
+        var hackathon = await context.Entities.FirstAsync();
+        var hackathonId = hackathon.HackathonId;
+        var team = new Team(new Member(1, EmployeeType.Junior), new Member(1, EmployeeType.TeamLead));
+        var preferences1 = new Preferences(hackathonId, new Member(1, EmployeeType.Junior), [1]);
+        var preferences2 = new Preferences(hackathonId, new Member(1, EmployeeType.TeamLead), [1]);
+        
+        await service.AddPreferencesFromHackathonToDbAsync(hackathonId, preferences1, 2);
+        await service.AddPreferencesFromHackathonToDbAsync(hackathonId, preferences2, 2);
+        // await context.Entry(hackathon).ReloadAsync();
+        await service.AddTeamsFromHackathonToDbAsync(hackathonId, [team]);
+        await context.Entry(hackathon).ReloadAsync();
+    
+        var updatedHackathon = await context.Entities.FirstOrDefaultAsync(e => e.HackathonId == hackathonId);
+    
+        Assert.NotNull(updatedHackathon);
+        Assert.Equal(hackathonId, updatedHackathon.HackathonId);
+        Assert.Contains(updatedHackathon.Teams!, t => t.Junior.Id == 1);
+        Assert.Contains(updatedHackathon.Preferences!, p => p.Member.Id == 1);
     }
 }

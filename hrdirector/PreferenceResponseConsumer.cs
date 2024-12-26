@@ -8,6 +8,6 @@ public class MemberPreferencesResponseConsumer(
 {
     public async Task Consume(ConsumeContext<Preferences> context)
     {
-        await metricCalculationService.AddPreferencesFromHackathonToDbAsync(context.Message.HackathonId, context.Message);
+        await metricCalculationService.AddPreferencesFromHackathonToDbAsync(context.Message.HackathonId, context.Message, 10);
     }
 }

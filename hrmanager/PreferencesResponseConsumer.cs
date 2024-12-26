@@ -11,7 +11,11 @@ public class PreferencesResponseConsumer(
     HrDirectorParameters hrDirectorParameters,
     DreamTeamFormationService dreamTeamFormationService) : IConsumer<Preferences>
 {
-    private readonly HttpClient _client = new();
+    private readonly HttpClient _client = new()
+    {
+        Timeout = TimeSpan.FromMinutes(5)
+    };
+
     private readonly ConcurrentDictionary<int, bool> _notifiedHackathons = new();
     private readonly ConcurrentDictionary<int, SemaphoreSlim> _hackathonLocks = new();
 

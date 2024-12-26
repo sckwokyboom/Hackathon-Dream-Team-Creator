@@ -7,7 +7,7 @@ using domain;
 public class HrDirectorCore(
     MetricCalculationService metricsCalculationService) : BackgroundService
 {
-    private const int TotalHackathons = 1;
+    private const int TotalHackathons = 100;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -80,7 +80,7 @@ public class HrDirectorCore(
             }
 
             await metricsCalculationService.AddTeamsFromHackathonToDbAsync(request.HackathonId, request.Teams);
-            Console.WriteLine($"Среднее по гармонии из базы данных для хакатона {request.HackathonId}: {await metricsCalculationService.GetAverageHarmonyAsync()}");
+            Console.WriteLine($"Общее среднее по гармонии из базы данных: {await metricsCalculationService.GetAverageHarmonyAsync()}");
             return Results.Ok();
         }
         catch (Exception ex)

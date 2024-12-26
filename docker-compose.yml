@@ -27,6 +27,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: hackathon
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
       - "5432:5432"
     healthcheck:
@@ -81,7 +82,6 @@ services:
       RABBITMQ_USER: user
       RABBITMQ_PASSWORD: password
       DIRECTOR_URI: HRDirectorService:8080
-    entrypoint: [ "sh", "-c", "sleep 30 && dotnet hrmanager.dll" ]
 
   Junior1:
     image: member
